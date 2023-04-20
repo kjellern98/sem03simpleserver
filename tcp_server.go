@@ -4,14 +4,16 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	"sync"
+	"github.com/kjellern98/is105sem03/mycrypt"
 )
 
 func main() {
 
 	var wg sync.WaitGroup
 
-	server, err := net.Listen("tcp", "172.17.0.4:80")
+	server, err := net.Listen("tcp", "172.17.0.4:10000")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,12 +38,19 @@ func main() {
 						}
 						return // fra for løkke
 					}
-					switch msg := string(buf[:n]); msg {
-  				        case "ping":
-						_, err = c.Write([]byte("pong"))
+
+					dekryptertMelding := mycrypt.Krypter([]rune(string(buf[:n])), mycrypt.ALF_SEM03, len(mycrypt.ALF_SEM03)-4)
+					log.Println("Dekrypter melding: ", string(dekryptertMelding))
+
+					msg := string(dekryptertMelding)
+					switch {
+					case strings.HasPrefix(msg, "ping"):
+						kryptertPong := mycrypt.Krypter([]rune("pong"), mycrypt.ALF_SEM03, 4)
+						_, err = c.Write([]byte(string(kryptertPong)))
 					default:
 						_, err = c.Write(buf[:n])
 					}
+
 					if err != nil {
 						if err != io.EOF {
 							log.Println(err)
@@ -53,4 +62,5 @@ func main() {
 		}
 	}()
 	wg.Wait()
+
 }
